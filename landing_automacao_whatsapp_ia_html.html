@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Automação de Atendimento com IA para WhatsApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #020617;
+      --bg-soft: #0f172a;
+      --card: rgba(255,255,255,0.055);
+      --card-strong: rgba(15,23,42,0.82);
+      --line: rgba(255,255,255,0.10);
+      --text: #ffffff;
+      --muted: #cbd5e1;
+      --muted-2: #94a3b8;
+      --green: #34d399;
+      --green-strong: #10b981;
+      --cyan: #22d3ee;
+      --dark: #020617;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(16,185,129,0.22), transparent 34%),
+        radial-gradient(circle at 95% 18%, rgba(34,211,238,0.12), transparent 34%),
+        radial-gradient(circle at 45% 72%, rgba(139,92,246,0.12), transparent 34%);
+      z-index: -1;
+    }
+
+    .container {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    section {
+      position: relative;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      align-items: center;
+      gap: 56px;
+      padding: 72px 0 90px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(52,211,153,0.25);
+      background: rgba(52,211,153,0.10);
+      color: #d1fae5;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .badge svg, .icon svg { width: 20px; height: 20px; }
+
+    h1 {
+      margin-top: 32px;
+      font-size: clamp(46px, 6vw, 78px);
+      line-height: 0.96;
+      letter-spacing: -0.06em;
+      font-weight: 900;
+    }
+
+    .highlight {
+      color: var(--green);
+    }
+
+    .hero p {
+      margin-top: 28px;
+      max-width: 690px;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.75;
+    }
+
+    .pills {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 34px;
+      max-width: 640px;
+    }
+
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .pill svg { color: var(--green); width: 21px; height: 21px; }
+
+    .phone-wrap {
+      position: relative;
+    }
+
+    .phone-wrap::before {
+      content: "";
+      position: absolute;
+      inset: -22px;
+      border-radius: 42px;
+      background: linear-gradient(135deg, rgba(52,211,153,0.22), rgba(34,211,238,0.10));
+      filter: blur(30px);
+    }
+
+    .phone {
+      position: relative;
+      border-radius: 42px;
+      border: 1px solid var(--line);
+      background: rgba(15,23,42,0.86);
+      padding: 20px;
+      box-shadow: 0 30px 90px rgba(0,0,0,0.42);
+    }
+
+    .phone-inner {
+      border-radius: 32px;
+      background: #020617;
+      padding: 22px;
+    }
+
+    .chat-head {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 22px;
+    }
+
+    .avatar {
+      width: 50px;
+      height: 50px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--green);
+      color: var(--dark);
+    }
+
+    .avatar svg { width: 28px; height: 28px; }
+
+    .chat-head strong { display: block; font-size: 16px; }
+    .chat-head span { color: var(--green); font-size: 13px; font-weight: 700; }
+
+    .chat { display: grid; gap: 16px; }
+
+    .bubble {
+      padding: 15px 18px;
+      border-radius: 24px;
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .bubble.user {
+      justify-self: end;
+      max-width: 84%;
+      background: var(--green);
+      color: #052e16;
+      border-bottom-right-radius: 6px;
+      font-weight: 600;
+    }
+
+    .bubble.ai {
+      justify-self: start;
+      max-width: 88%;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--line);
+      color: #f8fafc;
+      border-bottom-left-radius: 6px;
+    }
+
+    .bubble.ai.green {
+      background: rgba(52,211,153,0.10);
+      border-color: rgba(52,211,153,0.25);
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .mini-card {
+      text-align: center;
+      background: rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 15px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .mini-card svg {
+      display: block;
+      width: 24px;
+      height: 24px;
+      margin: 0 auto 8px;
+      color: var(--green);
+    }
+
+    .strip {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.035);
+      padding: 64px 0;
+    }
+
+    .cards-4, .cards-3, .cards-2 {
+      display: grid;
+      gap: 22px;
+    }
+
+    .cards-4 { grid-template-columns: repeat(4, 1fr); }
+    .cards-3 { grid-template-columns: repeat(3, 1fr); }
+    .cards-2 { grid-template-columns: repeat(2, 1fr); }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      border-radius: 28px;
+      padding: 26px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.20);
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(52,211,153,0.36);
+      background: rgba(255,255,255,0.075);
+    }
+
+    .card, .step, .benefit, .summary-item { transition: 0.25s ease; }
+
+    .icon {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: rgba(52,211,153,0.12);
+      color: var(--green);
+      border: 1px solid rgba(52,211,153,0.18);
+      margin-bottom: 20px;
+    }
+
+    .card h3, .step h3, .summary-item h3 {
+      font-size: 20px;
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+
+    .card p, .step p, .summary-item p {
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .section-pad { padding: 96px 0; }
+
+    .section-title {
+      max-width: 850px;
+      margin: 0 auto 56px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 0.25em;
+      font-size: 13px;
+      font-weight: 900;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      font-size: clamp(34px, 4vw, 54px);
+      line-height: 1.04;
+      letter-spacing: -0.045em;
+      font-weight: 900;
+    }
+
+    .section-title p {
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.75;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 22px;
+    }
+
+    .step {
+      position: relative;
+      background: rgba(2,6,23,0.68);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 34px 24px 26px;
+    }
+
+    .num {
+      position: absolute;
+      left: 24px;
+      top: -16px;
+      background: var(--green);
+      color: var(--dark);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .step-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-top: 8px;
+    }
+
+    .step-icon {
+      width: 48px;
+      height: 48px;
+      flex: 0 0 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.08);
+      color: var(--green);
+      border: 1px solid var(--line);
+    }
+
+    .step-icon svg { width: 23px; height: 23px; }
+
+    .soft-bg {
+      background: rgba(15,23,42,0.55);
+    }
+
+    .manager-box {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 42px;
+      align-items: center;
+      border: 1px solid rgba(52,211,153,0.20);
+      border-radius: 42px;
+      background: linear-gradient(135deg, rgba(52,211,153,0.12), rgba(255,255,255,0.045), rgba(34,211,238,0.10));
+      padding: 46px;
+    }
+
+    .manager-box p {
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.75;
+      margin-top: 22px;
+    }
+
+    .benefits {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      max-width: 950px;
+      margin: 0 auto;
+    }
+
+    .benefit {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border: 1px solid var(--line);
+      background: rgba(2,6,23,0.68);
+      border-radius: 24px;
+      padding: 20px;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .benefit svg {
+      color: var(--green);
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: 0.9fr 1.6fr;
+      gap: 48px;
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 18px;
+    }
+
+    .summary-item {
+      display: flex;
+      gap: 20px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 28px;
+      padding: 24px;
+    }
+
+    .summary-number {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--green);
+      color: var(--dark);
+      font-weight: 900;
+    }
+
+    .final-box {
+      text-align: center;
+      border: 1px solid var(--line);
+      background: rgba(15,23,42,0.86);
+      border-radius: 42px;
+      padding: 56px;
+      box-shadow: 0 30px 90px rgba(0,0,0,0.30);
+    }
+
+    .big-icon {
+      width: 72px;
+      height: 72px;
+      display: grid;
+      place-items: center;
+      border-radius: 24px;
+      background: var(--green);
+      color: var(--dark);
+      margin: 0 auto 26px;
+    }
+
+    .big-icon svg { width: 38px; height: 38px; }
+
+    .final-box h2 {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .final-box p {
+      max-width: 760px;
+      margin: 24px auto 0;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.75;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 36px;
+    }
+
+    .tag {
+      border: 1px solid rgba(52,211,153,0.20);
+      background: rgba(52,211,153,0.10);
+      color: #d1fae5;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .cta-fake {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 38px;
+      padding: 16px 24px;
+      border-radius: 18px;
+      background: var(--green);
+      color: var(--dark);
+      font-weight: 900;
+      box-shadow: 0 22px 55px rgba(16,185,129,0.18);
+    }
+
+    .cta-fake svg { width: 20px; height: 20px; }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: 0.75s ease;
+    }
+
+    .reveal.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .hero, .manager-box, .summary {
+        grid-template-columns: 1fr;
+      }
+
+      .cards-4, .steps {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .cards-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .container { width: min(100% - 28px, 1180px); }
+      .hero { padding-top: 48px; }
+      .pills, .cards-4, .cards-2, .steps, .benefits {
+        grid-template-columns: 1fr;
+      }
+      .manager-box, .final-box { padding: 28px; border-radius: 30px; }
+      .mini-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="container hero">
+      <div class="reveal">
+        <div class="badge">
+          <span data-icon="sparkles"></span>
+          Automação de atendimento com IA para WhatsApp
+        </div>
+        <h1>Seu atendimento no WhatsApp funcionando como um <span class="highlight">funcionário digital</span></h1>
+        <p>Uma IA capaz de responder clientes, entender textos, áudios e imagens, acessar dados da empresa e entregar um atendimento rápido, natural e inteligente.</p>
+        <div class="pills">
+          <div class="pill"><span data-icon="message"></span> Texto no WhatsApp</div>
+          <div class="pill"><span data-icon="mic"></span> Áudios transcritos</div>
+          <div class="pill"><span data-icon="image"></span> Imagens interpretadas</div>
+          <div class="pill"><span data-icon="clock"></span> Mensagens agrupadas</div>
+        </div>
+      </div>
+
+      <div class="phone-wrap reveal">
+        <div class="phone">
+          <div class="phone-inner">
+            <div class="chat-head">
+              <div class="avatar"><span data-icon="bot"></span></div>
+              <div>
+                <strong>Atendimento IA</strong>
+                <span>online agora • responde em segundos</span>
+              </div>
+            </div>
+            <div class="chat">
+              <div class="bubble user">Oi, queria saber se vocês têm esse produto em estoque. Vou mandar uma foto e um áudio.</div>
+              <div class="bubble ai">Recebi sua imagem e transcrevi seu áudio. Vou consultar o estoque e te responder com as opções disponíveis.</div>
+              <div class="mini-grid">
+                <div class="mini-card"><span data-icon="image"></span> imagem lida</div>
+                <div class="mini-card"><span data-icon="mic"></span> áudio transcrito</div>
+                <div class="mini-card"><span data-icon="database"></span> dados consultados</div>
+              </div>
+              <div class="bubble ai green">Sim, temos disponível. Posso te passar valores, variações e prazo de entrega agora mesmo.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="strip">
+      <div class="container cards-4">
+        <article class="card reveal"><div class="icon"><span data-icon="zap"></span></div><h3>Resposta imediata</h3><p>O cliente não fica esperando. A IA responde com velocidade e contexto.</p></article>
+        <article class="card reveal"><div class="icon"><span data-icon="brain"></span></div><h3>Entendimento real</h3><p>Interpreta mensagens completas, mesmo quando o cliente manda vários textos seguidos.</p></article>
+        <article class="card reveal"><div class="icon"><span data-icon="workflow"></span></div><h3>Fluxo inteligente</h3><p>Organiza o atendimento, consulta dados e entrega respostas mais completas.</p></article>
+        <article class="card reveal"><div class="icon"><span data-icon="shield"></span></div><h3>Profissional e escalável</h3><p>Mantém padrão de atendimento mesmo com alto volume de mensagens.</p></article>
+      </div>
+    </section>
+
+    <section class="section-pad">
+      <div class="container">
+        <div class="section-title reveal">
+          <div class="eyebrow">Como funciona</div>
+          <h2>Do WhatsApp até a resposta final, tudo acontece de forma automática</h2>
+          <p>A automação foi pensada para simular um atendimento humano, mas com a velocidade, memória e conexão de dados de uma inteligência artificial.</p>
+        </div>
+        <div class="steps">
+          <article class="step reveal"><div class="num">01</div><div class="step-row"><div class="step-icon"><span data-icon="message"></span></div><div><h3>Cliente chama no WhatsApp</h3><p>Ele pode enviar texto, áudio, imagem ou várias mensagens seguidas no mesmo atendimento.</p></div></div></article>
+          <article class="step reveal"><div class="num">02</div><div class="step-row"><div class="step-icon"><span data-icon="brain"></span></div><div><h3>IA entende o contexto</h3><p>O sistema transcreve áudios, interpreta imagens e junta mensagens enviadas em uma janela de 12 segundos.</p></div></div></article>
+          <article class="step reveal"><div class="num">03</div><div class="step-row"><div class="step-icon"><span data-icon="database"></span></div><div><h3>Consulta dados da empresa</h3><p>Quando necessário, o agente acessa planilhas, WooCommerce, estoque, pedidos ou bases internas.</p></div></div></article>
+          <article class="step reveal"><div class="num">04</div><div class="step-row"><div class="step-icon"><span data-icon="headphones"></span></div><div><h3>Responde no WhatsApp</h3><p>A IA envia uma resposta única, clara, humanizada e alinhada com as informações reais da empresa.</p></div></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-pad soft-bg">
+      <div class="container">
+        <div class="section-title reveal">
+          <div class="eyebrow">Multimodal</div>
+          <h2>Texto, áudio e imagem dentro do mesmo atendimento</h2>
+          <p>O cliente fala do jeito que quiser. O agente entende o conteúdo, organiza a conversa e responde com clareza.</p>
+        </div>
+        <div class="cards-3">
+          <article class="card reveal"><div class="icon"><span data-icon="message"></span></div><h3>Mensagens de texto</h3><p>Entende perguntas, dúvidas, pedidos, objeções e solicitações feitas em linguagem natural.</p></article>
+          <article class="card reveal"><div class="icon"><span data-icon="mic"></span></div><h3>Áudios transcritos</h3><p>Transforma o áudio enviado pelo cliente em texto para o agente interpretar e responder.</p></article>
+          <article class="card reveal"><div class="icon"><span data-icon="image"></span></div><h3>Imagens analisadas</h3><p>Permite que o cliente envie fotos, prints ou imagens que podem ser interpretadas pela IA.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-pad">
+      <div class="container">
+        <div class="section-title reveal">
+          <div class="eyebrow">Conectado ao negócio</div>
+          <h2>A IA não responde no escuro: ela pode acessar os dados da empresa</h2>
+          <p>O atendimento fica muito mais útil quando o agente entende o negócio e consegue consultar informações reais em tempo de conversa.</p>
+        </div>
+        <div class="cards-4">
+          <article class="card reveal"><div class="icon"><span data-icon="table"></span></div><h3>Planilhas</h3><p>Consulta e atualização de estoque, produtos, pedidos e dados internos.</p></article>
+          <article class="card reveal"><div class="icon"><span data-icon="cart"></span></div><h3>WooCommerce</h3><p>Acesso a produtos, compras, pedidos e informações do e-commerce.</p></article>
+          <article class="card reveal"><div class="icon"><span data-icon="share"></span></div><h3>Redes sociais</h3><p>Possibilidade de conectar dados e fluxos de atendimento de outros canais.</p></article>
+          <article class="card reveal"><div class="icon"><span data-icon="database"></span></div><h3>Base da empresa</h3><p>A IA aprende regras, informações, políticas e respostas específicas do negócio.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-pad">
+      <div class="container manager-box reveal">
+        <div>
+          <div class="eyebrow">Para o gestor</div>
+          <h2>Também funciona como assistente interno da empresa</h2>
+          <p>Além de atender clientes, o agente pode ajudar o dono da empresa ou a equipe a consultar informações, organizar dados e executar tarefas operacionais.</p>
+        </div>
+        <div class="cards-2">
+          <article class="card"><div class="icon"><span data-icon="package"></span></div><h3>Consulta estoque</h3><p>Veja disponibilidade de produtos e informações internas com rapidez.</p></article>
+          <article class="card"><div class="icon"><span data-icon="cart"></span></div><h3>Acompanha pedidos</h3><p>Busque dados de compras, status e informações importantes.</p></article>
+          <article class="card"><div class="icon"><span data-icon="table"></span></div><h3>Atualiza planilhas</h3><p>Pode realizar alterações e organizar dados conforme o fluxo definido.</p></article>
+          <article class="card"><div class="icon"><span data-icon="chart"></span></div><h3>Apoio operacional</h3><p>Ajuda a equipe a ganhar tempo em tarefas repetitivas e consultas manuais.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-pad soft-bg">
+      <div class="container">
+        <div class="section-title reveal">
+          <div class="eyebrow">Benefícios</div>
+          <h2>Mais velocidade, mais organização e menos atendimento manual</h2>
+          <p>Uma solução feita para empresas que querem profissionalizar o WhatsApp e parar de perder oportunidades por demora ou falta de processo.</p>
+        </div>
+        <div class="benefits">
+          <div class="benefit reveal"><span data-icon="check"></span> Atendimento automático 24h</div>
+          <div class="benefit reveal"><span data-icon="check"></span> Respostas rápidas e humanizadas</div>
+          <div class="benefit reveal"><span data-icon="check"></span> Menos leads perdidos por demora</div>
+          <div class="benefit reveal"><span data-icon="check"></span> Mais organização no atendimento</div>
+          <div class="benefit reveal"><span data-icon="check"></span> Integração com dados reais da empresa</div>
+          <div class="benefit reveal"><span data-icon="check"></span> Suporte para clientes e gestores</div>
+          <div class="benefit reveal"><span data-icon="check"></span> Escala sem equipe grande</div>
+          <div class="benefit reveal"><span data-icon="check"></span> Experiência profissional no WhatsApp</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-pad">
+      <div class="container summary">
+        <div class="reveal">
+          <div class="eyebrow">Resumo visual</div>
+          <h2>O que o cliente ganha na prática?</h2>
+        </div>
+        <div class="summary-list">
+          <article class="summary-item reveal"><div class="summary-number">1</div><div><h3>Atendimento com aparência humana</h3><p>A IA conversa de forma natural, entende o contexto e responde sem parecer um robô genérico.</p></div></article>
+          <article class="summary-item reveal"><div class="summary-number">2</div><div><h3>Menos trabalho repetitivo</h3><p>Perguntas comuns, consultas e informações podem ser resolvidas automaticamente.</p></div></article>
+          <article class="summary-item reveal"><div class="summary-number">3</div><div><h3>Mais dados na mão</h3><p>A empresa pode transformar planilhas, estoque e pedidos em informação útil dentro do WhatsApp.</p></div></article>
+          <article class="summary-item reveal"><div class="summary-number">4</div><div><h3>Mais vendas e menos abandono</h3><p>Respostas rápidas evitam que o cliente esfrie, esqueça ou procure o concorrente.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="container" style="padding-bottom: 80px;">
+      <div class="final-box reveal">
+        <div class="big-icon"><span data-icon="bot"></span></div>
+        <h2>Uma IA preparada para atender, vender e auxiliar a operação da empresa</h2>
+        <p>O WhatsApp deixa de ser apenas um canal de mensagens e passa a funcionar como uma central inteligente de atendimento, vendas e gestão.</p>
+        <div class="tags">
+          <span class="tag">WhatsApp</span><span class="tag">IA</span><span class="tag">Áudio</span><span class="tag">Imagem</span><span class="tag">Planilhas</span><span class="tag">WooCommerce</span><span class="tag">Estoque</span><span class="tag">Pedidos</span><span class="tag">Gestor</span>
+        </div>
+        <div class="cta-fake">Atendimento inteligente do início ao fim <span data-icon="arrow"></span></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const icons = {
+      sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 10.8 8 16l-1.9-5.2L1 9l5.1-1.8L8 2l1.9 5.2L15 9l-5.1 1.8Z"/><path d="m19 15-1 3-3 1 3 1 1 3 1-3 3-1-3-1-1-3Z"/></svg>',
+      message: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>',
+      mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg>',
+      image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>',
+      clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+      bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>',
+      database: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg>',
+      zap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.8-1.6l9.7-10.2a.5.5 0 0 1 .9.4L12 10h8a1 1 0 0 1 .8 1.6l-9.7 10.2a.5.5 0 0 1-.9-.4L12 14Z"/></svg>',
+      brain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.99.3A4 4 0 0 0 4 13a4 4 0 0 0 2 7"/><path d="M12 5a3 3 0 1 1 5.99.3A4 4 0 0 1 20 13a4 4 0 0 1-2 7"/><path d="M12 5v14"/><path d="M8 13h8"/></svg>',
+      workflow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="9" y="15" width="6" height="6" rx="1"/><path d="M6 9v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9"/><path d="M12 12v3"/></svg>',
+      shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 8.8a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.4a1.3 1.3 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></svg>',
+      headphones: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>',
+      table: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>',
+      cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.7 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6l1.6-8.4H5.1"/></svg>',
+      share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>',
+      package: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.3 9 5.2"/><path d="M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+      chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>',
+      check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+      arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>'
+    };
+
+    document.querySelectorAll('[data-icon]').forEach(el => {
+      el.innerHTML = icons[el.dataset.icon] || '';
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('show');
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
